@@ -299,16 +299,31 @@ object KeelParser {
 	  result.mkString(",")
 	}
 	
-	def ParseLabeledPointString(str:String): LabeledPoint = {
+	def parseLabeledPointString(str:String): LabeledPoint = {
 	  val value = str.split(",").map(element => element.toDouble)
 	  val features = value.slice(0, value.length - 1)
 	  val label = value.last
 	  new LabeledPoint(label,Vectors.dense(features))
 	}
 	
-  def ParseStringLabeledPoint(instance:LabeledPoint): String = {
-	  val features = instance.features.toArray.mkString(",")
-	  val label = instance.label.toString()
-    (features + "," + label)
+  def parseStringLabeledPoint(instance:Array[Double],delimiter:String,minorityClass:String): String = {
+	  val features = instance.mkString(delimiter)
+    (features + delimiter + minorityClass)
 	}
+  def parseStringMajoritaryClass (conv: Array[Map[String, Double]], line: String, delimiter:String): String = {
+	  
+		val tokens = line.split(",")
+		require(tokens.length == conv.length)
+		
+		val arr = (conv, tokens).zipped.map{(c, elem) =>
+        c.getOrElse(elem.trim, elem.trim.toDouble)
+      /* c.get("min") match {
+        case Some(min) => elem.toDouble - min
+        case None => c.getOrElse(elem, elem.toDouble)
+      } */          
+    }
+        
+		val features= arr.slice(0, arr.length - 1)
+	  (features.mkString(delimiter) + delimiter + tokens.last)
+  }
 }

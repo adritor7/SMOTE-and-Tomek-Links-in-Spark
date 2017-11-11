@@ -20,7 +20,7 @@ object structureData {
  	    var rowCount = iterator1.length - 1
  	    while(iterator2.hasNext){
  	      val it = iterator2.next
- 	      val e : LabeledPoint = KeelParser.ParseLabeledPointString(it)
+ 	      val e : LabeledPoint = KeelParser.parseLabeledPointString(it)
  	      //val e : LabeledPoint = KeelParser.parseLabeledPoint(conv, it)
  	      result.::=((e,partitionId.toInt,rowCount))
  	      rowCount = rowCount -1

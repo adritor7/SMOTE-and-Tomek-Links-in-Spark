@@ -8,20 +8,22 @@ import org.apache.spark.broadcast.Broadcast
 import scala.collection.mutable.ArrayBuffer
 import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
+import scala.sys.process._
 
 object smote {
   
   def runSMOTE(sc: SparkContext, 
 		           inPath: String,
 		           delimiter: String,
-		           minorityClass:Int,
+		           minorityClass:String,
 		           k:Int,
 		           oversamplingPctg:Double,
                numPartitions: Int, 
                numReducer:Int,
                bcTypeConv: Array[Map[String, Double]],
                numIterations:Int,
-               outPath:String) : Unit = {
+               outPath:String,
+               outFile:String) : Unit = {
     
     
     //Load data with structure [LabeledPoint,ID-Partition,Index-Row]
@@ -75,6 +77,7 @@ object smote {
     val sampleDataKey = sampleData.mapPartitions(element => element.map(instance => (instance._2 + "," + instance._3,instance._1)),preservesPartitioning = true)
     val sampleDataNearestNeighbors = randomNearestNeighbors.join(sampleDataKey).map(x => (x._2._2, x._2._1))
     val dataArray = data.mapPartitions(x => Iterator(x.toArray),preservesPartitioning = true).cache()
+    //val valueMinorityClass = bcTypeConv.last.apply(minorityClass).toDouble
     
     //Apply SMOTE
     val newData:RDD[String] = applySMOTE(sc,dataArray,sampleDataNearestNeighbors,minorityClass,oversamplingPctg,numberOfNeighbors,numIterations,delimiter) 
@@ -82,11 +85,15 @@ object smote {
     //newData.take(2).foreach(element => println(element))    
     
     //Save in file
-    val instanceMayoritaryClass = sc.textFile(inPath).map(line => KeelParser.parseString(bcTypeConv, line)).filter(line => line.split(delimiter).last.compareToIgnoreCase(bcTypeConv.last.apply("negative").toString()) == 0)
-    newData.union(instanceMayoritaryClass).union(sampleDataNearestNeighbors.map(instance => KeelParser.ParseStringLabeledPoint(instance._1))).coalesce(1,true).saveAsTextFile(outPath) 
+    val instanceMajoritaryClass = sc.textFile(inPath).filter(line => line.split(delimiter).last.compareToIgnoreCase(minorityClass) != 0).map(line => KeelParser.parseStringMajoritaryClass(bcTypeConv, line, delimiter))
+
+    //instanceMajoritaryClass.coalesce(1, true).saveAsTextFile(outPath)
+    newData.union(instanceMajoritaryClass).union(sampleDataNearestNeighbors.map(instance => (KeelParser.parseStringLabeledPoint(instance._1.features.toArray, delimiter, minorityClass)))).coalesce(1,true).saveAsTextFile(outPath) 
+    val command = "hdfs dfs -mv " + outPath + "part* " + outPath + outFile
+    Process(command)!
   }
   
-  private def applySMOTE(sc:SparkContext,data:RDD[Array[(LabeledPoint,Int,Int)]],sampleData:RDD[(LabeledPoint,Array[String])],minorityClass:Int,oversamplingPctg:Double,
+  private def applySMOTE(sc:SparkContext,data:RDD[Array[(LabeledPoint,Int,Int)]],sampleData:RDD[(LabeledPoint,Array[String])],minorityClass:String,oversamplingPctg:Double,
                          numberOfNeighbors:Int,numIterations:Int,delimiter:String) : RDD[String] = {
     
     var inc = (sampleData.count() / numIterations).toInt
@@ -143,7 +150,7 @@ object smote {
   
   //Create artificial instances
   private def createSyntheticData (partitionIndex: Long,iter: Iterator[Array[(LabeledPoint,Int,Int)]], sampleData: Broadcast[Array[(LabeledPoint,Array[String])]],
-                                   numberOfNeighbors:Int,minorityClass:Int,delimiter:String): Iterator[String] = {
+                                   numberOfNeighbors:Int,minorityClass:String,delimiter:String): Iterator[String] = {
   	  var result = ArrayBuffer[String]()
 			val dataArr = iter.next
 			val nLocal = dataArr.size - 1			
@@ -157,7 +164,7 @@ object smote {
 					      val currentPoint = dataArr(neighborId)	
 					      val features = currentPoint._1.features	
 					      val newSample = createNewSample(sampleFeatures,features)
-					      result .+=(newSample.mkString(delimiter) + delimiter + minorityClass.toDouble)
+					      result .+=(newSample.mkString(delimiter) + delimiter + minorityClass)
 				    }
 			  }
 			}

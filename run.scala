@@ -8,6 +8,7 @@ import smote.smote
 import utils.KeelParser
 import tomekLinks.smoteTomekLink
 
+
 object run {
   def main(args: Array[String]) {
      
@@ -37,8 +38,9 @@ object run {
 		val inputPath = options.getOrElse("inputPath", "ECBDL14_mbd/")
 		val headerFile = inputPath + options.getOrElse("headerFile","ecbdl14.header")
     val inputFile = inputPath + options.getOrElse("inputFile","ecbdl14tra.data")
-		val outputFile = options.getOrElse("outputFile","ECBDL14SMOTE")
-		val minorityClass = options.getOrElse("minorityClass","1").toInt
+		val outputDirectory = options.getOrElse("outputDirectory","ECBDL14SMOTE")
+		val outputFile = options.getOrElse("outputFile","SMOTE")
+		val minorityClass = options.getOrElse("minorityClass","positive")
 		val oversamplingPctg = options.getOrElse("oveR","0.1").toDouble
     val k = options.getOrElse("K","5").toInt
 		val delimiter = options.getOrElse("delimiter",",")
@@ -61,7 +63,7 @@ object run {
 
      
 	   //Execute SMOTE or Tomek-Links
-	   smote.runSMOTE(sc, inputFile, delimiter, minorityClass, k, oversamplingPctg, numPartitions, numReducers, typeConversion,numIterations, outputFile)
+	   smote.runSMOTE(sc, inputFile, delimiter, minorityClass, k, oversamplingPctg, numPartitions, numReducers, typeConversion,numIterations, outputDirectory,outputFile)
 	   //smoteTomekLink.runSMOTETomekLink(sc, inputFile, numPartitions, numReducers, typeConversion, numIterations, outputFile)
 	   println("The algorithm has finished running")
 		 sc.stop()

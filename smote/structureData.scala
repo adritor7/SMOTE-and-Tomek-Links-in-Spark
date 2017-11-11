@@ -10,11 +10,11 @@ import scala.collection.mutable.ArrayBuffer
 
 object structureData {
   
-  def getStructureData(sc: SparkContext, path: String,delimiter:String , minorityClass:Int,numPartitions: Int, conv: Array[Map[String, Double]]): (RDD[(LabeledPoint,Int,Int)],Long,Long) = { 
+  def getStructureData(sc: SparkContext, path: String,delimiter:String , minorityClass:String,numPartitions: Int, conv: Array[Map[String, Double]]): (RDD[(LabeledPoint,Int,Int)],Long,Long) = { 
     
     val train = sc.textFile(path: String).map(line => KeelParser.parseLabeledPoint(conv, line))
-    val data = train.filter(line => line.label == minorityClass).repartition(numPartitions).cache()
-    val num_neg = train.filter(line => line.label != minorityClass).count()
+    val data = train.filter(line => line.label.toString().compareToIgnoreCase(conv.last.apply(minorityClass).toString()) == 0).repartition(numPartitions).cache()
+    val num_neg = train.filter(line => line.label.toString().compareToIgnoreCase(conv.last.apply(minorityClass).toString()) != 0).count()
     val num_pos = data.count()
  	  
  	  println("Number of positive examples: "+num_pos)

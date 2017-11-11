@@ -9,7 +9,7 @@ import org.apache.spark.rdd.RDD
 import utils.KeelParser
 
 object smoteTomekLink {
-  
+  /*
   def runSMOTETomekLink(sc: SparkContext, 
 		                    inPath: String,
                         numPartitions: Int, 
@@ -115,5 +115,5 @@ object smoteTomekLink {
 			    }
 			}
 		  result.iterator
-  }
+  }*/
 }
